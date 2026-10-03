@@ -1,0 +1,40 @@
+.page-actions{display:flex;flex-wrap:wrap;gap:9px;align-items:center}
+.roadmap-education-summary{display:flex;align-items:center;gap:14px;margin:18px 0;padding:18px 21px;background:#eef3e9;border:1px solid #e0e9d7;border-radius:10px;color:#48663c}
+.roadmap-education-summary>div{flex:1;min-width:0}
+.roadmap-education-summary strong{display:block;font-size:15px}
+.roadmap-education-summary span{display:block;font-size:11px;color:#78896a;margin-top:4px}
+.task-copy>.course-meta{color:#6f885e;font-size:10px;line-height:1.7}
+.planned-education{margin-bottom:20px}
+.course-fields{background:#f7f9f2;border:1px solid #e2e9d8;border-radius:9px;padding:17px;display:flex;flex-direction:column;gap:14px}
+.course-fields h3{display:flex;align-items:center;gap:7px;font-size:14px}
+.course-fields .checkbox-label{padding:2px 0;line-height:1.7}
+.task-entry{min-width:0}
+.task-guide-disclosure{margin:0 0 10px;border-bottom:1px solid var(--line);padding:0 0 12px}
+.task-guide-disclosure>summary{cursor:pointer;color:#657e53;font-size:11px;padding:11px 0 2px;line-height:1.8}
+.task-guide-disclosure>summary:focus-visible{outline:2px solid #a7bd75;outline-offset:3px}
+.task-guide-disclosure[open]>summary{font-weight:600;padding-bottom:13px}
+.task-guide{background:#f8faf5;border:1px solid #e5ebdf;border-radius:9px;padding:20px;font-size:12px;line-height:1.85;color:#56694a;overflow-wrap:anywhere}
+.task-guide h3{font-size:15px;color:#385435;margin-bottom:8px}
+.task-guide-header{display:flex;align-items:flex-start;gap:9px}
+.task-guide-header h3{margin:0}
+.task-guide h4{font-size:12px;color:#4b6540;margin:16px 0 7px}
+.task-guide p{margin:6px 0;font-size:11px}
+.task-guide ul,.task-guide ol{margin:8px 0;padding-left:20px}
+.task-guide li{margin:7px 0}
+.task-guide a{color:#38633c;text-decoration:underline;text-underline-offset:3px}
+.task-guide a:hover{color:#244528}
+.task-guide a svg{vertical-align:middle;margin-left:5px}
+.task-guide section+section{border-top:1px solid #e4ebdb;margin-top:14px;padding-top:4px}
+.task-guide dl{margin:8px 0}
+.task-guide dt{font-weight:600;margin-top:10px}
+.task-guide dd{margin:3px 0;color:#75836a}
+.task-guide-note,.task-guide-verified{font-size:10px!important;color:#819071}
+.task-guide-links{display:flex;flex-wrap:wrap;gap:10px 16px}
+.task-guide-documents>li>div{display:flex;align-items:center;flex-wrap:wrap;gap:7px}
+.task-guide-documents .neutral{background:#edf0e7;color:#7c896d}
+.task-guide-contacts>div{margin:12px 0;padding-bottom:10px;border-bottom:1px solid #e5ebdf}
+.task-guide-phone{display:inline-flex;align-items:center;gap:5px;margin-left:9px;white-space:nowrap}
+.task-guide-source{display:block;font-size:10px;color:#819071;margin-top:14px}
+.task-guide-disclosure .task-guide .demo-banner{margin-bottom:12px}
+@media(max-width:950px){.page-heading:has(.page-actions){flex-wrap:wrap}.page-actions{width:100%}}
+@media(max-width:700px){.roadmap-education-summary{padding:15px;gap:10px;flex-wrap:wrap}.roadmap-education-summary .text-button{margin-left:32px}.roadmap-education-summary strong{font-size:14px}.task-guide{padding:15px;font-size:11px}.task-guide h3{font-size:14px}.course-fields{padding:14px}.page-actions .button{flex:1}.task-guide-links{flex-direction:column;gap:8px}.task-copy>.course-meta{font-size:9px}}
