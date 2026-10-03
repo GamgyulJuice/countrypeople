@@ -2,6 +2,7 @@ import { chromium, expect } from '@playwright/test';
 import { mkdir } from 'node:fs/promises';
 import { resolve } from 'node:path';
 
+const baseURL = process.env.BASE_URL || 'http://127.0.0.1:5173';
 const browser = await chromium.launch({ channel: 'msedge', headless: true });
 const context = await browser.newContext({ viewport: { width: 1440, height: 1080 } });
 await context.route('**/*', route => ['127.0.0.1', 'localhost'].includes(new URL(route.request().url()).hostname) ? route.continue() : route.abort());
@@ -17,13 +18,13 @@ async function addCourse(title, hours) {
   return group;
 }
 try {
-  await page.goto('http://127.0.0.1:5173/');
+  await page.goto(baseURL);
   await page.getByRole('radio', { name: /농업을 할 예정/ }).check();
   await page.getByLabel('이름 또는 별명').fill('여러 교육 수료자');
   await page.getByLabel('생년월일').fill('1994-05-10');
-  await page.getByLabel('현재 거주 지역').fill('서울특별시 마포구');
-  await page.getByLabel('희망 시·도').selectOption('전라남도');
-  await page.getByLabel('희망 시·군·구').fill('담양군');
+  await page.getByLabel('현재 거주 지역').selectOption('서울특별시');
+  await page.getByLabel('희망 시·도').selectOption('전남광주통합특별시');
+  await page.getByLabel('희망 시·군·구').selectOption('담양군');
   await page.getByRole('button', { name: '준비 조건 입력하기' }).click();
   await page.getByLabel('이주 전 연속 도시 거주기간 (개월)').fill('36');
   await addCourse('귀농 기초교육', 40);

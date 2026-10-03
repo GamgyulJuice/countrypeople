@@ -43,6 +43,17 @@ describe('정책 추천 및 로드맵', () => {
     expect(matchPolicy(policy, profile, [], '2027-01-01').status).toBe('모집 마감');
     expect(matchPolicy(policy, profile, [], '2025-12-31').status).toBe('모집 예정');
   });
+  it('새 지역 선택값과 기존 표기의 시군 정책을 동일하게 비교한다', () => {
+    const regional = { ...policy, region: '전라남도 담양군', rules: [{ ...policy.rules[0], field: 'region' as const, operator: 'eq' as const, value: '전라남도 담양군' }] };
+    const selected = { ...profile, target_province: '전남광주통합특별시' };
+    expect(matchPolicy(regional, selected, [], '2026-10-03').status).toBe('조건상 추천');
+    expect(matchPolicy(regional, { ...selected, target_district: '곡성군' }, [], '2026-10-03').status).toBe('현재 조건 불일치');
+  });
+  it('세종 전체 선택은 세종 정책과 비교하고 인천 분구를 임의 추정하지 않는다', () => {
+    const regional = { ...policy, region: '세종특별자치시', rules: [{ ...policy.rules[0], field: 'region' as const, operator: 'eq' as const, value: '세종특별자치시' }] };
+    expect(matchPolicy(regional, { ...profile, target_province: '세종특별자치시', target_district: '세종특별자치시' }, [], '2026-10-03').status).toBe('조건상 추천');
+    expect(matchPolicy({ ...policy, region: '인천광역시 서구' }, { ...profile, target_province: '인천광역시', target_district: '검단구' }, [], '2026-10-03').status).toBe('현재 조건 불일치');
+  });
   it('자바스크립트·HTTP 링크를 원문으로 허용하지 않는다', () => {
     expect(safeSource('javascript:alert(1)')).toBeNull();
     expect(safeSource('http://example.org')).toBeNull();

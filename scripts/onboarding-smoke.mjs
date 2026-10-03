@@ -3,6 +3,7 @@ import { mkdir } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { completeOnboarding } from './onboarding-helper.mjs';
 
+const baseURL = process.env.BASE_URL || 'http://127.0.0.1:5173';
 const browser = await chromium.launch({ channel: 'msedge', headless: true });
 const context = await browser.newContext({ viewport: { width: 1440, height: 1080 } });
 await context.route('**/*', route => ['127.0.0.1', 'localhost'].includes(new URL(route.request().url()).hostname) ? route.continue() : route.abort());
@@ -10,7 +11,7 @@ const page = await context.newPage();
 const errors = [];
 page.on('pageerror', e => errors.push(e.message));
 try {
-  await page.goto('http://127.0.0.1:5173/');
+  await page.goto(baseURL);
   await expect(page.getByRole('heading', { name: '먼저, 나의 이주 계획부터' })).toBeVisible();
   await mkdir(resolve('artifacts'), { recursive: true });
   await page.screenshot({ path: resolve('artifacts/onboarding-desktop.png'), fullPage: true, animations: 'disabled' });
@@ -51,13 +52,13 @@ try {
   const ruralContext = await browser.newContext({ viewport: { width: 390, height: 844 } });
   await ruralContext.route('**/*', route => ['127.0.0.1', 'localhost'].includes(new URL(route.request().url()).hostname) ? route.continue() : route.abort());
   const rural = await ruralContext.newPage();
-  await rural.goto('http://127.0.0.1:5173/');
+  await rural.goto(baseURL);
   await rural.getByRole('radio', { name: /농업 외 생활 예정/ }).check();
   await rural.getByLabel('이름 또는 별명').fill('귀촌 준비인');
   await rural.getByLabel('생년월일').fill('1968-01-01');
-  await rural.getByLabel('현재 거주 지역').fill('경기도 수원시');
+  await rural.getByLabel('현재 거주 지역').selectOption('경기도');
   await rural.getByLabel('희망 시·도').selectOption('강원특별자치도');
-  await rural.getByLabel('희망 시·군·구').fill('양양군');
+  await rural.getByLabel('희망 시·군·구').selectOption('양양군');
   await rural.getByLabel('희망 활동·업종').fill('카페');
   await rural.getByRole('button', { name: '준비 조건 입력하기' }).click();
   await expect(rural.getByLabel('독립 영농 시작일')).toHaveCount(0);

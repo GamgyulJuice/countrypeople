@@ -1,4 +1,5 @@
 import type { Education, Policy, Profile, Rule, Task } from './types';
+import { normalizePolicyRegion } from './regions';
 
 // Civil dates use Korea time; calendar differences must not depend on the device timezone.
 export function today(date = new Date()): string {
@@ -30,7 +31,7 @@ export function matchPolicy(policy: Policy, profile: Profile | null, education: 
   const values: Record<string, string | number | boolean | null> = profile ? {
     age: profile.birth_date ? ageAt(profile.birth_date, reference) : null,
     purpose: profile.purpose === '탐색 중' ? null : profile.purpose,
-    region: profile.target_district ? `${profile.target_province} ${profile.target_district}`.trim() : null,
+    region: profile.target_district ? normalizePolicyRegion(`${profile.target_province} ${profile.target_district}`) : null,
     education_hours: completedHours(education, reference), urban_months: profile.urban_months,
     independent_years: profile.independent_since ? Math.max(0, -daysUntil(profile.independent_since, reference) / 365.2425) : null,
     household_head: profile.household_head, entity_status: profile.entity_status || null,
@@ -41,7 +42,8 @@ export function matchPolicy(policy: Policy, profile: Profile | null, education: 
     const supported = ['gte', 'lte', 'eq'].includes(rule.operator);
     const numeric = typeof actual === 'number' && typeof rule.value === 'number';
     const unknown = actual === null || !supported || (rule.operator !== 'eq' && !numeric);
-    const passed = rule.operator === 'eq' ? actual === rule.value : numeric && (rule.operator === 'gte' ? actual >= (rule.value as number) : actual <= (rule.value as number));
+    const expected = rule.field === 'region' && typeof rule.value === 'string' ? normalizePolicyRegion(rule.value) : rule.value;
+    const passed = rule.operator === 'eq' ? actual === expected : numeric && (rule.operator === 'gte' ? actual >= (rule.value as number) : actual <= (rule.value as number));
     return { rule, actual, status: unknown ? 'unknown' : passed ? 'pass' : 'gap' } as RuleResult;
   });
   let status: MatchStatus = '조건상 추천';
@@ -51,7 +53,7 @@ export function matchPolicy(policy: Policy, profile: Profile | null, education: 
   // Region is enforced even if an administrator has not created an explicit region rule.
   if (profile && policy.region !== '전국') {
     if (!profile.target_district) status = '추가 확인 필요';
-    else if (policy.region !== `${profile.target_province} ${profile.target_district}`.trim()) status = '현재 조건 불일치';
+    else if (normalizePolicyRegion(policy.region) !== values.region) status = '현재 조건 불일치';
   }
   if (policy.start_date && policy.start_date > reference) status = '모집 예정';
   if (policy.end_date && policy.end_date < reference) status = '모집 마감';

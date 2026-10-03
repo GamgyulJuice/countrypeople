@@ -7,9 +7,9 @@ export async function completeOnboarding(page) {
   await page.getByRole('radio', { name: /농업을 할 예정/ }).check();
   await page.getByLabel('이름 또는 별명').fill('예비 귀농인');
   await page.getByLabel('생년월일').fill('1994-05-10');
-  await page.getByLabel('현재 거주 지역').fill('서울특별시 마포구');
-  await page.getByLabel('희망 시·도').selectOption('전라남도');
-  await page.getByLabel('희망 시·군·구').fill('담양군');
+  await page.getByLabel('현재 거주 지역').selectOption('서울특별시');
+  await page.getByLabel('희망 시·도').selectOption('전남광주통합특별시');
+  await page.getByLabel('희망 시·군·구').selectOption('담양군');
   await page.getByLabel('귀농·귀촌은 어디까지 진행했나요?').selectOption('준비');
   await page.getByRole('checkbox', { name: '아직 시기를 정하지 않았어요' }).uncheck();
   const future = new Date(Date.now() + 180 * 86400000).toISOString().slice(0, 10);

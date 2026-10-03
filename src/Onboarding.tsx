@@ -1,3 +1,4 @@
+import { CurrentRegionField, TargetRegionFields, profileWithSelectableRegions } from './RegionFields';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { ArrowLeft, ArrowRight, CalendarDays, Check, CircleHelp, GraduationCap, Leaf, MapPin, Sprout } from 'lucide-react';
 import { blankProfile, type AppData, type Education, type Profile } from './lib/types';
@@ -9,13 +10,12 @@ import './onboarding.css';
 import { purposeOptions, stageOptions, stageLabel } from './lib/profile-options';
 import EducationListFields from './EducationListFields';
 
-const provinces = ['서울특별시', '부산광역시', '대구광역시', '인천광역시', '광주광역시', '대전광역시', '울산광역시', '세종특별자치시', '경기도', '강원특별자치도', '충청북도', '충청남도', '전북특별자치도', '전라남도', '경상북도', '경상남도', '제주특별자치도'];
 const steps = ['나의 이주 계획', '지금의 준비 상황', '맞춤 계획 확인'];
 type Props = { userId: string; data: AppData; demo: boolean; busy: boolean; error: string; save: (m: Mutation) => Promise<boolean>; done: () => void; cancel?: () => void };
 
 export default function Onboarding({ userId, data, demo, busy, error, save, done, cancel }: Props) {
   const [step, setStep] = useState(0);
-  const [p, setP] = useState<Profile>(() => data.profile ? { ...data.profile } : blankProfile(userId));
+  const [p, setP] = useState<Profile>(() => profileWithSelectableRegions(data.profile ? { ...data.profile } : blankProfile(userId)));
   const [undecidedDate, setUndecidedDate] = useState(!data.profile?.move_date);
   const [education, setEducation] = useState<Education[]>([]);
   const ids = useRef(new Map<string, string>());
@@ -47,7 +47,7 @@ export default function Onboarding({ userId, data, demo, busy, error, save, done
       <form onSubmit={submit} className="onboarding-form"><fieldset disabled={busy}>
         {step === 0 && <>
           <div className="onboarding-purpose"><span className="field-title">이주 후 농업을 할 계획인가요?</span><div role="radiogroup" aria-label="이주 후 농업 계획">{purposeOptions.map(({ value, label, detail }) => <label className={`purpose-choice ${p.purpose === value ? 'chosen' : ''}`} key={value}><input type="radio" name="purpose" value={value} checked={p.purpose === value} onChange={() => field('purpose', value)} /><span aria-hidden="true">{value === '귀농' ? <Sprout size={22} /> : value === '귀촌' ? <MapPin size={22} /> : <Leaf size={22} />}</span><strong>{label}</strong><small>{detail}</small></label>)}</div><p className="muted-text">농업을 할지 아직 결정하지 않았어도 이주 준비는 진행할 수 있어요. 아래에서 현재 이주 진행 단계를 따로 선택해 주세요.</p></div>
-          <div className="form-grid"><label>이름 또는 별명 <span className="required">필수</span><input autoComplete="nickname" required maxLength={80} pattern=".*\S.*" value={p.display_name} onChange={e => field('display_name', e.target.value)} placeholder="어떻게 불러드릴까요?" /></label><label>생년월일 <span className="required">필수</span><input type="date" required max={today()} value={p.birth_date || ''} onChange={e => field('birth_date', e.target.value || null)} /></label><label>현재 거주 지역 <span className="required">필수</span><input required pattern=".*\S.*" value={p.current_region} onChange={e => field('current_region', e.target.value)} placeholder="예: 서울특별시 마포구" /></label><label>귀농·귀촌은 어디까지 진행했나요?<select value={p.stage} onChange={e => field('stage', e.target.value)}>{stageOptions.map(({ value, label }) => <option key={value} value={value}>{label}</option>)}</select></label><label>희망 시·도 <span className="required">필수</span><select required value={p.target_province} onChange={e => field('target_province', e.target.value)}><option value="">시·도 선택</option>{provinces.map(v => <option key={v}>{v}</option>)}</select></label><label>희망 시·군·구 <span className="required">필수</span><input required pattern=".*\S.*" value={p.target_district} onChange={e => field('target_district', e.target.value)} placeholder="예: 담양군" /></label></div>
+          <div className="form-grid"><label>이름 또는 별명 <span className="required">필수</span><input autoComplete="nickname" required maxLength={80} pattern=".*\S.*" value={p.display_name} onChange={e => field('display_name', e.target.value)} placeholder="어떻게 불러드릴까요?" /></label><label>생년월일 <span className="required">필수</span><input type="date" required max={today()} value={p.birth_date || ''} onChange={e => field('birth_date', e.target.value || null)} /></label><CurrentRegionField showRequired value={p.current_region} onChange={value => field('current_region', value)} /><label>귀농·귀촌은 어디까지 진행했나요?<select value={p.stage} onChange={e => field('stage', e.target.value)}>{stageOptions.map(({ value, label }) => <option key={value} value={value}>{label}</option>)}</select></label><TargetRegionFields showRequired province={p.target_province} district={p.target_district} onChange={region => setP(previous => ({ ...previous, ...region }))} /></div>
           <label className="checkbox-label"><input type="checkbox" checked={p.moved} onChange={e => { field('moved', e.target.checked); if (e.target.checked) setUndecidedDate(false); }} />이미 농촌으로 전입했어요</label>
           <div className="form-grid"><div><label>{p.moved ? '전입 완료일' : '전입 예정일'}<input type="date" required={p.moved || !undecidedDate} disabled={undecidedDate && !p.moved} min={p.moved ? undefined : today()} max={p.moved ? today() : undefined} value={p.move_date || ''} onChange={e => field('move_date', e.target.value || null)} /></label>{!p.moved && <label className="checkbox-label"><input type="checkbox" checked={undecidedDate} onChange={e => setUndecidedDate(e.target.checked)} />아직 시기를 정하지 않았어요</label>}</div><label>{p.purpose === '귀촌' ? '희망 활동·업종' : '희망 작목·업종'}<input maxLength={80} value={p.interest} onChange={e => field('interest', e.target.value)} placeholder={p.purpose === '귀촌' ? '예: 원격근무, 카페, 은퇴생활' : '예: 딸기, 스마트팜'} /></label></div>
         </>}
