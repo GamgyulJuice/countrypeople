@@ -1,6 +1,6 @@
 import { CurrentRegionField, TargetRegionFields, profileWithSelectableRegions } from './RegionFields';
 import { createContext, useContext, useCallback, useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
-import { ArrowDown, ArrowRight, Bell, Bookmark, CalendarDays, Check, CheckCircle2, ChevronRight, CircleHelp, ExternalLink, GraduationCap, LayoutDashboard, Leaf, LoaderCircle, LogOut, MapPin, Menu, Plus, Search, Settings2, Sprout, Trash2, TrendingUp, X, Pencil, ClipboardList, Mail, Wheat } from 'lucide-react';
+import { ArrowDown, ArrowRight, Bell, Bookmark, CalendarDays, Check, CheckCircle2, ChevronRight, CircleHelp, ExternalLink, GraduationCap, Leaf, LoaderCircle, LogOut, MapPin, Plus, Search, Settings2, Sprout, Trash2, TrendingUp, X, Pencil, ClipboardList, Mail, Wheat } from 'lucide-react';
 import { isDemo, configError, supabase } from './lib/supabase';
 import { loadData, mutate, type Mutation } from './lib/repository';
 import { addDays, completedHours, daysUntil, matchPolicy, roadmap, safeSource, taskProgress, today } from './lib/domain';
@@ -14,18 +14,12 @@ import RoadmapTaskForm from './RoadmapTaskForm';
 import { RoadmapGuide } from './RoadmapGuide';
 import { isEducationTask } from './lib/education-roadmap';
 import { roadmapTaskTitle } from './lib/roadmap-guides';
+import PortalHeader from './portal/PortalHeader';
+import type { WorkspacePage } from './portal/navigation';
 import './roadmap-guide.css';
 
-type Page = 'home' | 'policies' | 'tasks' | 'education' | 'briefing' | 'profile';
 const MutationError = createContext('');
-const nav = [
-  { id: 'home', label: '나의 대시보드', icon: LayoutDashboard },
-  { id: 'policies', label: '맞춤 정책 찾기', icon: Sprout },
-  { id: 'tasks', label: '나의 로드맵', icon: CalendarDays },
-  { id: 'education', label: '교육 이력', icon: GraduationCap },
-  { id: 'briefing', label: '이번 주 브리핑', icon: Mail },
-] as const;
-const pageTitles: Record<Page, string> = { home: '나의 대시보드', policies: '맞춤 정책 찾기', tasks: '나의 로드맵', education: '교육 이력', briefing: '이번 주 브리핑', profile: '나의 프로필' };
+const pageTitles: Record<WorkspacePage, string> = { home: '나의 대시보드', policies: '맞춤 정책 찾기', tasks: '나의 로드맵', education: '교육 이력', briefing: '이번 주 브리핑', profile: '나의 프로필' };
 const categories = ['전체', '창업·자금', '정착지원', '주거·생활', '교육', '농지', '일자리'];
 const message = (e: unknown) => e instanceof Error ? e.message : '요청을 처리하지 못했습니다. 잠시 후 다시 시도해 주세요.';
 function deadline(date: string | null) { if (!date) return '상시 / 원문 확인'; const n = daysUntil(date); return n < 0 ? '모집 마감' : n === 0 ? '오늘 마감' : `D-${n}`; }
@@ -38,8 +32,10 @@ function Modal({ title, close, children }: { title: string; close: () => void; c
   return <dialog ref={ref} onCancel={e => { e.preventDefault(); close(); }} className="modal" aria-label={title}><div className="modal-head"><h2>{title}</h2><button className="icon-button" onClick={close} aria-label="닫기"><X /></button></div>{error && <p role="alert" className="error modal-error">{error}</p>}{children}</dialog>;
 }
 
-function Auth() {
-  const [signup, setSignup] = useState(false), [busy, setBusy] = useState(false), [error, setError] = useState(''), [notice, setNotice] = useState('');
+function Auth({ initialSignup = false, onPortalHome, onNavigate, activePage }: { initialSignup?: boolean; onPortalHome: () => void; onNavigate: (page: WorkspacePage) => void; activePage: WorkspacePage }) {
+  const [signup, setSignup] = useState(initialSignup), [busy, setBusy] = useState(false), [error, setError] = useState(''), [notice, setNotice] = useState('');
+  useEffect(() => { setSignup(initialSignup); }, [initialSignup]);
+  function switchAuth(next = false) { setSignup(next); setError(''); setNotice(''); }
   async function submit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault(); const form = new FormData(e.currentTarget); setBusy(true); setError(''); setNotice('');
     try {
@@ -49,26 +45,23 @@ function Auth() {
       if (signup && !result.data.session) setNotice('가입 확인 메일을 보냈습니다. 이메일 인증 후 로그인해 주세요.');
     } catch (e) { setError(message(e)); } finally { setBusy(false); }
   }
-  return <main className="auth-page"><div className="auth-art"><span className="brand"><Sprout /> 시골로<span className="brand-dot">.</span></span><h1>새로운 시작,<br />조금 더 가까이.</h1><p>나에게 맞는 정책부터 매일의 작은 준비까지.<br />당신의 귀농·귀촌 여정을 함께합니다.</p><Landscape /></div><div className="auth-form"><span className="eyebrow">YOUR NEXT CHAPTER</span><h2>{signup ? '시골로 여정 시작하기' : '다시 만나 반가워요'}</h2><p>내 준비 상황을 안전하게 저장하고 이어가세요.</p><form onSubmit={submit}><label>이메일<input name="email" type="email" autoComplete="email" required placeholder="you@example.com" /></label><label>비밀번호<input name="password" type="password" minLength={8} autoComplete={signup ? 'new-password' : 'current-password'} required placeholder="8자 이상 입력" /></label>{error && <p role="alert" className="error">{error}</p>}{notice && <p role="status" className="success">{notice}</p>}<button className="button" disabled={busy}>{busy ? '처리 중…' : signup ? '회원가입' : '로그인'}<ArrowRight size={17} /></button></form><button className="text-button" onClick={() => { setSignup(!signup); setError(''); setNotice(''); }}>{signup ? '이미 계정이 있나요? 로그인' : '처음 오셨나요? 회원가입'}</button><small>정책 신청은 원문에 안내된 기관에서 직접 진행합니다.</small></div></main>;
+  return <div className="workspace-auth"><PortalHeader onNavigate={onNavigate} onHome={onPortalHome} onAuth={switchAuth} activePage={activePage} /><main className="auth-page" id="site-content"><div className="auth-card"><div className="auth-art"><span className="auth-art-label"><Sprout size={20} /> 새로운 일상으로 가는 길</span><h1>나의 시작을 찾는 곳,<br />시골로</h1><p>나에게 맞는 정책부터 매일의 작은 준비까지.<br />당신의 귀농·귀촌 여정을 함께합니다.</p><span className="auth-photo-caption">자연과 가까워지는 새로운 일상</span></div><div className="auth-form"><span className="eyebrow">시골로 회원 서비스</span><h2>{signup ? '시골로 여정 시작하기' : '로그인'}</h2><p>{signup ? '계정을 만들고 나만의 귀농·귀촌 준비를 시작하세요.' : '내 준비 상황을 안전하게 저장하고 이어가세요.'}</p><form onSubmit={submit}><label>이메일<input name="email" type="email" autoComplete="email" required placeholder="you@example.com" /></label><label>비밀번호<input name="password" type="password" minLength={8} autoComplete={signup ? 'new-password' : 'current-password'} required placeholder="8자 이상 입력" /></label>{error && <p role="alert" className="error">{error}</p>}{notice && <p role="status" className="success">{notice}</p>}<button className="button" disabled={busy}>{busy ? '처리 중…' : signup ? '회원가입' : '로그인'}<ArrowRight size={17} /></button></form><button className="text-button auth-switch" onClick={() => switchAuth(!signup)}>{signup ? '이미 계정이 있나요? 로그인' : '처음 오셨나요? 회원가입'}</button><small>정책 신청은 원문에 안내된 기관에서 직접 진행합니다.</small></div></div></main></div>;
 }
 
-function Landscape() {
-  return <svg className="landscape" viewBox="0 0 520 260" aria-hidden="true"><circle cx="382" cy="58" r="36" fill="#e9d9a8"/><path d="M0 174Q100 36 241 138Q350 36 520 127V260H0Z" fill="#95ad88"/><path d="M0 196Q105 106 233 178Q390 62 520 152V260H0Z" fill="#63896b"/><path d="M0 225Q128 133 276 207Q414 119 520 173V260H0Z" fill="#345e4b"/><path d="M120 260Q215 210 380 201Q451 194 520 180M185 260Q293 226 425 219Q476 216 520 205M294 260Q401 235 520 229" fill="none" stroke="#a9bc8d" strokeWidth="3"/><path d="M312 173V144H349V173" fill="#f5e9d0"/><path d="M305 145L330 123L355 145Z" fill="#b98160"/><rect x="329" y="154" width="9" height="19" fill="#57715b"/><path d="M95 180V124M74 155L95 118L117 155Z" stroke="#244c3b" fill="#244c3b" strokeWidth="6"/><path d="M158 175V145M144 156L158 132L172 156Z" stroke="#345b40" fill="#345b40" strokeWidth="5"/></svg>;
-}
-
-export default function App() {
+export default function App({ initialPage = 'home', onPortalHome, initialSignup = false }: { initialPage?: WorkspacePage; onPortalHome?: () => void; initialSignup?: boolean }) {
   const [userId, setUserId] = useState<string | null>(isDemo ? 'demo-user' : null);
   const [booting, setBooting] = useState(!isDemo && !configError);
   const [data, setData] = useState<AppData>(emptyData), [owner, setOwner] = useState<string | null>(null);
   const [loading, setLoading] = useState(true), [loadError, setLoadError] = useState(''), [error, setError] = useState(''), [notice, setNotice] = useState('');
-  const [busy, setBusy] = useState(false), [version, setVersion] = useState(0), [page, setPage] = useState<Page>('home');
-  const [mobile, setMobile] = useState(false), [bellOpen, setBellOpen] = useState(false);
+  const [busy, setBusy] = useState(false), [version, setVersion] = useState(0), [page, setPage] = useState<WorkspacePage>(initialPage);
+  const [bellOpen, setBellOpen] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(() => new URLSearchParams(window.location.search).get('onboarding') === '1');
   const [selected, setSelected] = useState<Policy | null>(null), [taskEditor, setTaskEditor] = useState<Task | 'new' | null>(null), [eduEditor, setEduEditor] = useState<Education | 'new' | null>(null);
   const [query, setQuery] = useState(''), [category, setCategory] = useState('전체'), [savedOnly, setSavedOnly] = useState(false), [taskFilter, setTaskFilter] = useState('전체');
   const [taskView, setTaskView] = useState<'list' | 'calendar'>('list');
   const [calendarDate, setCalendarDate] = useState(today);
   const generation = useRef(0), locked = useRef(false);
+  useEffect(() => { setPage(initialPage); setBellOpen(false); }, [initialPage]);
   useEffect(() => {
     if (!supabase) return;
     let live = true, authEventReceived = false;
@@ -104,18 +97,19 @@ export default function App() {
     } catch (e) { if (current === generation.current) setError(message(e)); return false; }
     finally { if (current === generation.current) { locked.current = false; setBusy(false); } }
   }, [data, userId, owner]);
-  const go = (next: Page) => { setPage(next); setMobile(false); setBellOpen(false); };
+  const go = (next: WorkspacePage) => { setPage(next); setBellOpen(false); window.location.hash = `#my/${next}`; };
+  const portalHome = onPortalHome || (() => { window.location.hash = '#'; });
   if (configError) return <main className="center-state"><CircleHelp size={36} /><h1>연결 설정을 확인해 주세요</h1><p role="alert">{configError}</p><p>.env.example의 설명에 따라 환경변수를 설정하고 앱을 다시 시작하세요.</p></main>;
   if (booting) return <main className="center-state"><LoaderCircle className="spin" /><p>로그인 상태를 확인하고 있어요…</p></main>;
-  if (!userId) return <><Auth />{error && <div role="alert" className="toast error">{error}</div>}</>;
+  if (!userId) return <><Auth initialSignup={initialSignup} onPortalHome={portalHome} onNavigate={go} activePage={page} />{error && <div role="alert" className="toast error">{error}</div>}</>;
   const profile = owner === userId ? data.profile : null;
   function finishOnboarding() {
-    setShowOnboarding(false); setPage('home'); setError('');
+    setShowOnboarding(false); go('home'); setError('');
     const url = new URL(window.location.href);
     url.searchParams.delete('onboarding'); window.history.replaceState({}, '', url);
   }
   if (!loading && !loadError && owner === userId && (!profile || showOnboarding)) {
-    return <Onboarding key={userId} userId={userId} data={data} demo={isDemo} busy={busy} error={error} save={save} done={finishOnboarding} cancel={profile ? finishOnboarding : undefined} />;
+    return <div className="workspace-onboarding"><div className="onboarding-portal-return"><button className="text-button" onClick={portalHome}><ArrowRight size={16} />시골로 홈으로</button></div><Onboarding key={userId} userId={userId} data={data} demo={isDemo} busy={busy} error={error} save={save} done={finishOnboarding} cancel={profile ? finishOnboarding : undefined} /></div>;
   }
   const sortedTasks = roadmapPeriods(data.tasks).map(task => profile ? { ...task, title: roadmapTaskTitle(task, profile) } : task);
   const week = weeklyRoadmap(data.tasks);
@@ -148,19 +142,18 @@ export default function App() {
     const course = isEducationTask(original);
     return <div className="task-entry" key={task.id}><div className={`task-row ${task.completed ? 'done' : ''}`}><button className="check-button" role="checkbox" aria-checked={task.completed} aria-label={`${task.title} 완료`} disabled={busy} onClick={() => save({ kind: 'task', value: { ...original, completed: !task.completed } })}>{task.completed && <Check size={15} />}</button><div className="task-copy"><strong>{task.title}</strong><span>{task.category} · {taskPeriod(task)}</span>{course && <span className="course-meta">{original.education_provider} · {original.education_hours}시간 · {task.completed ? `수료 ${original.education_completed_date || ''} · 이력 자동 기록` : '완료 시 수료 이력 자동 기록'}</span>}</div><span className={`small-badge ${left < 0 && !task.completed ? 'overdue' : ''}`}>{taskStatus(task, today())}</span><button className="icon-button" aria-label={`${task.title} 수정`} disabled={busy} onClick={() => setTaskEditor(original)}><Pencil size={15} /></button><button className="icon-button" aria-label={`${task.title} 삭제`} disabled={busy} onClick={() => { if (window.confirm(course && task.completed ? '이 교육 일정을 삭제하면 자동 생성된 수료 기록과 합산 시간도 삭제됩니다. 삭제할까요?' : '이 할 일을 삭제할까요?')) void save({ kind: 'deleteTask', id: task.id }); }}><Trash2 size={15} /></button></div>{page === 'tasks' && profile && <details className="task-guide-disclosure"><summary>준비서류 · 연락처 · 신청 사이트</summary><RoadmapGuide task={original} profile={profile} policy={data.policies.find(policy => policy.id === original.policy_id)} /></details>}</div>;
   }
-  return <MutationError.Provider value={error}><div className="app-shell">
-    {mobile && <button className="mobile-scrim" aria-label="메뉴 닫기" onClick={() => setMobile(false)} />}
-    <aside className={`sidebar ${mobile ? 'open' : ''}`}><a className="brand" href="#home" onClick={e => { e.preventDefault(); go('home'); }}><Sprout size={31} />시골로<span className="brand-dot">.</span></a><p className="brand-sub">당신의 새로운 시작을 함께</p><span className="nav-caption">MY RURAL JOURNEY</span><nav>{nav.map(({ id, label, icon: Icon }) => <button key={id} className={`nav-item ${page === id ? 'selected' : ''}`} onClick={() => go(id)}><Icon size={19} />{label}{page === id && <span className="nav-dot" />}</button>)}</nav><div className="sidebar-note"><Leaf size={23} /><h4>차근차근, 나의 속도로</h4><p>작은 준비가 모여<br />새로운 일상이 됩니다.</p><button onClick={() => go('tasks')}>내 여정 살펴보기 <ArrowRight size={14} /></button></div><div className="sidebar-bottom"><button className={`nav-item ${page === 'profile' ? 'selected' : ''}`} onClick={() => go('profile')}><Settings2 size={18} />프로필 및 설정</button><div className="user"><span className="avatar">{profile?.display_name?.slice(0, 1) || '나'}</span><div><strong>{profile?.display_name || '새로운 이웃'} 님</strong><small>{profile?.purpose === '탐색 중' ? '농업 계획 미정' : profile?.purpose || '여정 시작하기'}</small></div>{!isDemo && <button className="icon-button" disabled={busy} aria-label="로그아웃" onClick={async () => { const { error } = await supabase!.auth.signOut(); if (error) setError(error.message); }}><LogOut size={17} /></button>}</div></div></aside>
-    <div className="main-shell"><header className="topbar"><button className="icon-button mobile-menu" aria-label="메뉴 열기" onClick={() => setMobile(true)}><Menu /></button><div className="breadcrumb">나의 여정 <ChevronRight size={13} /><strong>{pageTitles[page]}</strong></div><div className="topbar-right"><span className="today">{today().replaceAll('-', '. ')}</span><span className={`connection ${isDemo ? 'demo' : ''}`}><i />{isDemo ? '데모 모드' : 'Supabase 연결'}</span><button className="icon-button notification-button" aria-label={`알림 ${alertCount}개`} aria-expanded={bellOpen} onClick={() => setBellOpen(!bellOpen)}><Bell size={19} />{alertCount > 0 && <i />}</button></div></header>
+  return <MutationError.Provider value={error}><div className="app-shell workspace-shell">
+    <PortalHeader onNavigate={go} onHome={portalHome} onAuth={() => go('profile')} userName={profile?.display_name || '새로운 이웃'} activePage={page} />
+    <div className="main-shell"><header className="topbar workspace-utility"><div className="breadcrumb"><button onClick={portalHome}>시골로</button><ChevronRight size={13} />나의 여정 <ChevronRight size={13} /><strong>{pageTitles[page]}</strong></div><div className="topbar-right"><span className="today">{today().replaceAll('-', '. ')}</span>{isDemo && <span className="connection demo"><i />체험 모드</span>}<button className="icon-button notification-button" aria-label={`알림 ${alertCount}개`} aria-expanded={bellOpen} onClick={() => setBellOpen(!bellOpen)}><Bell size={19} />{alertCount > 0 && <i />}</button><button className="icon-button" aria-label="프로필 및 설정" onClick={() => go('profile')}><Settings2 size={18} /></button>{!isDemo && <button className="icon-button" disabled={busy} aria-label="로그아웃" onClick={async () => { const { error } = await supabase!.auth.signOut(); if (error) setError(error.message); }}><LogOut size={17} /></button>}</div></header>
       {bellOpen && <section className="notification-panel"><h3>다가오는 일정 <span>{alertCount}</span></h3><p className="muted-text">앱 내 알림 · 마감 30일 이내 관심 정책과 진행 중·7일 이내 시작할 일</p>{!profile?.notifications_enabled ? <p>프로필 설정에서 앱 내 알림을 켜 주세요.</p> : !alertCount ? <p>지금 확인할 알림이 없어요.</p> : <>{policyAlerts.map(p => <button key={p.id} onClick={() => { setSelected(p); setBellOpen(false); }}><Bookmark size={17} /><span>{p.title}<small>{deadline(p.end_date)} · 원문 일정 확인</small></span></button>)}{upcoming.map(t => <button key={t.id} onClick={() => go('tasks')}><CalendarDays size={17} /><span>{t.title}<small>{taskPeriod(t)}</small></span></button>)}</>}</section>}
-      <main className="content">
+      <main className="content" id="site-content">
         {isDemo && <div className="demo-banner"><span><Sprout size={15} />체험용 데이터입니다. 정책·기간·조건은 실제 공고가 아니며 변경 사항은 이 브라우저에만 저장됩니다.</span></div>}
-        {profile && <div className="onboarding-reentry"><button className="text-button" disabled={busy} onClick={() => { setError(''); setShowOnboarding(true); setMobile(false); setBellOpen(false); }}>내 조건 다시 입력하기 <ArrowRight size={14} /></button></div>}
+        {profile && <div className="onboarding-reentry"><button className="text-button" disabled={busy} onClick={() => { setError(''); setShowOnboarding(true); setBellOpen(false); }}>내 조건 다시 입력하기 <ArrowRight size={14} /></button></div>}
         {error && <div className="error inline-alert" role="alert"><span>{error}</span><button className="icon-button" aria-label="오류 닫기" onClick={() => setError('')}><X size={16} /></button></div>}
         {loading || (!loadError && owner !== userId) ? <div className="loading-state" role="status"><LoaderCircle className="spin" /><p>나의 여정을 불러오고 있어요…</p></div> : loadError ? <Empty title="데이터를 불러오지 못했어요" detail={`${loadError} · SQL migration 적용 및 로그인 상태를 확인해 주세요.`} action={<Button onClick={() => setVersion(v => v + 1)}>다시 시도</Button>} /> : !profile ? <><div className="page-heading"><div><span className="eyebrow">FIRST STEP</span><h1>당신의 새로운 시작을 알려주세요</h1><p>기본 정보를 저장하면 맞춤 정책과 준비 일정을 살펴볼 수 있어요.</p></div></div><ProfileForm initial={blankProfile(userId)} busy={busy} save={value => save({ kind: 'profile', value })} /></> : <>
           {page === 'home' && <>
             <div className="page-heading"><div><span className="eyebrow">A LITTLE CLOSER TO YOUR NEW LIFE</span><h1>{profile.display_name || '새로운 이웃'} 님, 오늘도 한 걸음 더 <span className="heading-leaf">✳</span></h1><p>차근차근 준비하는 귀농·귀촌, 시골로가 함께할게요.</p></div><button className="button secondary" onClick={() => go('profile')}>내 계획 수정 <ArrowRight size={15} /></button></div>
-            <section className="journey-hero"><div className="hero-copy"><span className="hero-label"><span />나의 {profile.purpose === '탐색 중' ? '귀농·귀촌' : profile.purpose} 여정</span><h2>{profile.target_district || '새로운 일상'}에서 시작할<br />나의 다음 이야기</h2><div className="hero-meta"><span><MapPin size={15} />{`${profile.target_province} ${profile.target_district}`.trim() || '희망 지역을 설정해 주세요'}</span><span><CalendarDays size={15} />{profile.move_date || '전입 목표일 미정'}</span></div><button onClick={() => go('tasks')}>나의 로드맵 보기 <ArrowRight size={16} /></button></div><Landscape /><div className="hero-count"><small>{profile.moved ? '전입 후' : '새로운 시작까지'}</small><strong>{profile.move_date ? daysUntil(profile.move_date) >= 0 ? `D-${daysUntil(profile.move_date)}` : `D+${-daysUntil(profile.move_date)}` : 'D-?'}</strong><span>{profile.interest || '나만의 계획을 만들어 보세요'}</span></div></section>
+            <section className="journey-hero"><div className="hero-copy"><span className="hero-label"><span />나의 {profile.purpose === '탐색 중' ? '귀농·귀촌' : profile.purpose} 여정</span><h2>{profile.target_district || '새로운 일상'}에서 시작할<br />나의 다음 이야기</h2><div className="hero-meta"><span><MapPin size={15} />{`${profile.target_province} ${profile.target_district}`.trim() || '희망 지역을 설정해 주세요'}</span><span><CalendarDays size={15} />{profile.move_date || '전입 목표일 미정'}</span></div><button onClick={() => go('tasks')}>나의 로드맵 보기 <ArrowRight size={16} /></button></div><div className="workspace-hero-photo" aria-hidden="true" /><div className="hero-count"><small>{profile.moved ? '전입 후' : '새로운 시작까지'}</small><strong>{profile.move_date ? daysUntil(profile.move_date) >= 0 ? `D-${daysUntil(profile.move_date)}` : `D+${-daysUntil(profile.move_date)}` : 'D-?'}</strong><span>{profile.interest || '나만의 계획을 만들어 보세요'}</span></div></section>
             <section className="stats"><article><span className="stat-icon sage"><TrendingUp size={20} /></span><div><p>나의 준비도</p><strong>{taskProgress(data.tasks)}<small>%</small></strong><span>등록한 할 일 완료 기준</span></div><div className="mini-progress"><i style={{ width: `${taskProgress(data.tasks)}%` }} /></div></article><article><span className="stat-icon beige"><Sprout size={20} /></span><div><p>조건상 추천 정책</p><strong>{matched.filter(p => p.status === '조건상 추천').length}<small>개</small></strong><span>최종 자격은 원문 확인</span></div></article><article><span className="stat-icon lavender"><ClipboardList size={20} /></span><div><p>이번 주 할 일</p><strong>{week.tasks.length}<small>개</small></strong><span>{week.completedCount}개 완료 · {week.pendingCount}개 남음</span></div></article><article><span className="stat-icon peach"><GraduationCap size={20} /></span><div><p>기록한 수료시간</p><strong>{completedHours(data.education)}<small>시간</small></strong><span>정책별 인정 여부 확인</span></div></article></section>
             <div className="section-heading"><div><h2>나에게 맞는 정책 <span className="count">{data.policies.length}</span></h2><p>내 상황에 맞춰 살펴볼 정책과 준비 조건이에요.</p></div><button className="text-button" onClick={() => go('policies')}>전체 보기 <ArrowRight size={16} /></button></div>
             {data.policies.length ? <div className="policy-grid">{recommendations.slice(0, 3).map(({ policy }) => policyCard(policy))}</div> : <Empty title="아직 등록된 정책이 없어요" detail="운영자가 출처와 조건을 확인한 정책을 등록하면 여기에 나타납니다." />}
