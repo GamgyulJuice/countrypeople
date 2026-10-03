@@ -1,0 +1,14 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: rural
+      POSTGRES_USER: rural
+      POSTGRES_PASSWORD: rural
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U rural"]
+      interval: 5s
+      timeout: 3s
+      retries: 10

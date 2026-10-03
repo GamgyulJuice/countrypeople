@@ -1,0 +1,10 @@
+{
+  "name": "@rural/ui",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": { ".": "./src/index.ts" },
+  "scripts": { "lint": "eslint src", "typecheck": "tsc --noEmit", "test": "vitest run --passWithNoTests", "build": "tsc -p tsconfig.build.json" },
+  "dependencies": { "clsx": "2.1.1", "tailwind-merge": "3.7.0", "react": "19.3.0", "lucide-react": "1.50.0" },
+  "devDependencies": { "@types/react": "19.3.0", "typescript": "5.9.3", "vitest": "5.0.3" }
+}
