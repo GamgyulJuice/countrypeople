@@ -11,7 +11,7 @@
     "build": "tsc -p tsconfig.build.json",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate deploy",
-    "db:seed": "tsx prisma/seed.ts"
+    "db:seed": "node prisma/seed.ts"
   },
   "dependencies": {
     "@fastify/cors": "11.3.0",

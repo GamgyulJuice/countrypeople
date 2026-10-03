@@ -1,6 +1,6 @@
 # MVP API 계약 v1
 
-Base URL: `/api/v1`. JSON과 UTF-8을 사용한다. 날짜는 `YYYY-MM-DD`, 시각은 UTC ISO 8601이다. 이번 주는 Asia/Seoul 기준 월요일부터 일요일까지다. Foundation 단계에서는 `GET /health`만 실행 가능하고 나머지는 API 기능 브랜치가 구현한다.
+Base URL: `/api/v1`. JSON과 UTF-8을 사용한다. 날짜는 `YYYY-MM-DD`, 시각은 UTC ISO 8601이다. 이번 주는 Asia/Seoul 기준 월요일부터 일요일까지다. Foundation 커밋에서는 `GET /health`만 실행 가능하다. `feat/api-platform`에서는 나머지 route를 제공한다. 정책·로드맵 엔진 shell이 미구현인 동안 평가·대시보드·체크인·뉴스레터는 `503 ENGINE_UNAVAILABLE`을 반환하며, 성공한 것처럼 빈 결과나 가짜 준비도를 반환하지 않는다.
 
 ## 공통
 
@@ -15,10 +15,10 @@ Base URL: `/api/v1`. JSON과 UTF-8을 사용한다. 날짜는 `YYYY-MM-DD`, 시�
 | GET | `/api/v1/profiles/:profileId` | profile UUID | 200 `ProfileRecord` | 400/404/500. 읽기 요청은 저장하지 않는다. |
 | PATCH | `/api/v1/profiles/:profileId` | `UserProfilePatch` JSON | 200 `ProfileRecord` | 400/404/409/500. 중첩 필드 병합 후 전체 schema를 재검증한다. 같은 patch 재시도는 동일 최종 값이다. |
 | POST | `/api/v1/profiles/:profileId/evaluations` | 빈 body 또는 없음 | 200 `EligibilityResult[]` | 400/404/409/500/503. 평가 기록은 새로 저장하지만 task는 `profileId + dedupeKey`로 중복 생성하지 않는다. 미구현 엔진은 503이다. |
-| GET | `/api/v1/profiles/:profileId/dashboard` | profile UUID | 200 `DashboardResponse` | 400/404/500. 평가가 없거나 프로필보다 오래되면 `eligibility: []`와 정책 집계 0. 읽기 요청은 평가를 자동 생성하지 않는다. |
+| GET | `/api/v1/profiles/:profileId/dashboard` | profile UUID | 200 `DashboardResponse` | 400/404/500/503. 평가가 없거나 프로필보다 오래되면 `eligibility: []`와 정책 집계 0. 읽기 요청은 평가를 자동 생성하지 않는다. |
 | PATCH | `/api/v1/tasks/:taskId` | `{ "status": "done" }` | 200 `RoadmapTask` | 400/404/500. 같은 status 요청은 같은 최종 상태다. |
-| POST | `/api/v1/profiles/:profileId/check-ins` | `Idempotency-Key` header와 `CheckInRequest` JSON | 200 `DashboardResponse` | 400/404/409/500. 같은 profile+key+payload는 저장된 응답을 그대로 반환, 같은 key+다른 payload는 409다. |
-| GET | `/api/v1/profiles/:profileId/newsletter-preview` | profile UUID | 200 `NewsletterPreview` | 400/404/500. 읽기 전용, 발송 없음. |
+| POST | `/api/v1/profiles/:profileId/check-ins` | `Idempotency-Key` header와 `CheckInRequest` JSON | 200 `DashboardResponse` | 400/404/409/500/503. 같은 profile+key+payload는 저장된 응답을 그대로 반환, 같은 key+다른 payload는 409다. Task ID 배열의 순서는 비교하지 않는다. |
+| GET | `/api/v1/profiles/:profileId/newsletter-preview` | profile UUID | 200 `NewsletterPreview` | 400/404/500/503. 읽기 전용, 발송 없음. |
 
 체크인 예: `{ "completedTaskIds": ["00000000-0000-4000-8000-000000000001"], "skippedTaskIds": [], "note": "교육 신청 완료" }`. 주간 preview 예: `{ "profileId":"00000000-0000-4000-8000-000000000001", "subject":"이번 주 준비할 일", "intro":"준비 현황", "daysToMove":30, "weeklyTasks":[], "newPolicies":[], "upcomingDeadlines":[], "readinessChange":null, "generatedAt":"2026-10-03T00:00:00.000Z" }`.
 

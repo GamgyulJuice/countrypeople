@@ -10,7 +10,7 @@
 
 **Spec:** 사용자가 제공한 `붙여넣은 마크다운.md`의 Foundation·백엔드 명세. 저장소 접근 후 설계 문서를 `docs/superpowers/specs/2026-10-03-rural-migration-mvp-design.md`에 기록한다.
 
-**상태:** 2026-10-03 KST 기준 명세·설계 계획. 저장소 접근이 확인되었으며 `main`에는 초기 README만 있다. Foundation 파일과 테스트는 구현 중이며 원격 commit·push 전이다.
+**상태:** Foundation `integration/mvp` 커밋 `6d30aafe7fe74d4a2330827c5a2fe7231b533755` push 완료. `feat/api-platform`에서 API route와 Prisma 모델·migration을 구현했다. 실제 PostgreSQL 통합 검증과 엔진 패키지 구현은 미완료다.
 
 ## Global Constraints
 
@@ -187,6 +187,12 @@ Clock.now()는 요청 처리의 시작에서 한 번 읽고 같은 값을 해당
 - [ ] `git fetch origin`과 `git rebase origin/integration/mvp`를 실행한다. 소유 영역 밖 충돌은 임의 수정하지 않는다. rebase로 영향받은 검증을 다시 실행한다.
 - [ ] `git push -u origin feat/api-platform` 후 원격 commit을 확인한다. 지정 title·base의 PR을 생성하고 URL을 확인한다. 자동 병합하지 않는다.
 - [ ] 최종 보고에는 Foundation hash, branch, 최종 hash, 공통 계약, endpoint, Prisma 모델·migration, 엔진 interface, 실행 테스트·결과, fake 영역, 보안 제한, 미완료, 위험, PR 주소 또는 실제 실행 가능한 생성 명령을 포함한다. 미실행 항목을 성공으로 표시하지 않는다.
+
+## 검증 한계
+
+- `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm build`, `pnpm db:generate`, `pnpm db:seed`는 실행 완료했다.
+- `docker compose up -d`는 실행 환경에 Docker가 없어 실패했다. `pnpm db:migrate`는 실행 가능한 PostgreSQL이 없어 실패했다. 실제 DB 트랜잭션·병렬 재시도 검증 전에는 운영 준비 완료로 간주하지 않는다.
+- 정책·로드맵 엔진 shell은 명시적 미구현 상태다. 평가·대시보드·체크인·뉴스레터 route의 검증은 테스트용 fake port를 사용한다.
 
 ## 7시간 운영 기준
 

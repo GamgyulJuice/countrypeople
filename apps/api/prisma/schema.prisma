@@ -1,0 +1,75 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Profile {
+  id                String             @id @default(uuid()) @db.Uuid
+  data              Json
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  evaluations       Evaluation[]
+  tasks             Task[]
+  checkIns          CheckIn[]
+  newsletterDigests NewsletterDigest[]
+}
+
+model Evaluation {
+  id               String   @id @default(uuid()) @db.Uuid
+  sequence         Int      @unique @default(autoincrement())
+  profileId        String   @db.Uuid
+  profile          Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  result           Json
+  profileUpdatedAt DateTime
+  profileData      Json
+  evaluatedAt      DateTime @default(now())
+  engineVersion    String
+
+  @@index([profileId, evaluatedAt])
+}
+
+model Task {
+  id             String   @id @default(uuid()) @db.Uuid
+  profileId      String   @db.Uuid
+  profile        Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  code           String
+  title          String
+  description    String
+  category       String
+  status         String
+  dueDate        DateTime? @db.Date
+  sourcePolicyId String?
+  dedupeKey      String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([profileId, dedupeKey])
+  @@index([profileId, dueDate])
+}
+
+model CheckIn {
+  id               String   @id @default(uuid()) @db.Uuid
+  sequence         Int      @unique @default(autoincrement())
+  profileId        String   @db.Uuid
+  profile          Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  completedTaskIds Json
+  skippedTaskIds   Json
+  note             String?
+  idempotencyKey   String
+  payloadHash      String
+  response         Json
+  createdAt        DateTime @default(now())
+
+  @@unique([profileId, idempotencyKey])
+}
+
+model NewsletterDigest {
+  id          String   @id @default(uuid()) @db.Uuid
+  profileId   String   @db.Uuid
+  profile     Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  content     Json
+  generatedAt DateTime @default(now())
+}
